@@ -33,36 +33,97 @@ At times, we may wish to tune a classification algorithm to optimize against pre
 
 ```python
 import pandas as pd
-df = pd.read_csv()
-
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+df = pd.read_csv('./heart.csv')
+df.head()
+X = df.drop('target', axis=1)
+y = df.target
 ```
 
 
 ```python
 #Your code here
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
 ```
 
 ## 2. Create a standard logistic regression model
 
 
 ```python
-#Your code here
+clf = LogisticRegression(verbose=1)
 ```
+
+
+```python
+clf.fit(X_train, y_train)
+```
+
+    [LibLinear]
+
+    /anaconda3/lib/python3.6/site-packages/sklearn/linear_model/logistic.py:433: FutureWarning: Default solver will be changed to 'lbfgs' in 0.22. Specify a solver to silence this warning.
+      FutureWarning)
+
+
+
+
+
+    LogisticRegression(C=1.0, class_weight=None, dual=False, fit_intercept=True,
+              intercept_scaling=1, max_iter=100, multi_class='warn',
+              n_jobs=None, penalty='l2', random_state=None, solver='warn',
+              tol=0.0001, verbose=1, warm_start=False)
+
+
 
 ## 3. Write a function to calculate the precision
 
 
 ```python
-def precision(y_hat, y):
-    #Your code here
+def recall(y_hat, y):
+    TP, TN, FP, FN = 0, 0, 0, 0
+    for actual, pred in zip(y, y_hat):
+        # calculate positives first
+        if pred == 1:
+            if actual == 1:
+                TP += 1
+            if actual == 0:
+                FP += 0
+        # calculate negatives
+        if pred == 0:
+            if actual == 0:
+                TN += 1
+            if actual == 1:
+                FN += 1
+    
+    numerator = TP
+    denominator = TP + FN
+    return float(numerator)/denominator
 ```
 
 ## 4. Write a function to calculate the recall
 
 
 ```python
-def recall(y_hat, y):
-    #Your code here
+def precison(y_hat, y):
+    TP, TN, FP, FN = 0, 0, 0, 0
+    for actual, pred in zip(y, y_hat):
+        # calculate positives first
+        if pred == 1:
+            if actual == 1:
+                TP += 1
+            if actual == 0:
+                FP += 0
+        # calculate negatives
+        if pred == 0:
+            if actual == 0:
+                TN += 1
+            if actual == 1:
+                FN += 1
+    
+    numerator = TP
+    denominator = TP + FP
+    return float(numerator)/denominator
 ```
 
 ## 5. Write a function to calculate the accuracy
@@ -70,17 +131,134 @@ def recall(y_hat, y):
 
 ```python
 def accuracy(y_hat, y):
-    #Your code here
+    TP, TN, FP, FN = 0, 0, 0, 0
+    for actual, pred in zip(y, y_hat):
+        # calculate positives first
+        if pred == 1:
+            if actual == 1:
+                TP += 1
+            if actual == 0:
+                FP += 0
+        # calculate negatives
+        if pred == 0:
+            if actual == 0:
+                TN += 1
+            if actual == 1:
+                FN += 1
+    
+    numerator = TP + TN
+    denominator = TP + TN + FP + FN
+    return float(numerator)/denominator
+```
+
+
+```python
+def f1_score(y_hat, y):
+    r = recall(y_hat, y)
+    p = precison(y_hat, y)
+    
+    numerator = r*p*2
+    denominator = p + r
+    return float(numerator)/denominator
 ```
 
 ## 6. Calculate the precision, recall and accuracy of your classifier
+
+
+```python
+y_hat_train = clf.predict_proba(X_train)
+y_hat_test = clf.predict_proba(X_test)
+```
+
+
+```python
+y_hat_test[:5]
+```
+
+
+
+
+    array([[0.16240531, 0.83759469],
+           [0.04638682, 0.95361318],
+           [0.9767811 , 0.0232189 ],
+           [0.96895777, 0.03104223],
+           [0.41447407, 0.58552593]])
+
+
+
+
+```python
+def y_hat_thresh(y_hat_probs, thresh=0.50):
+    y_hats = []
+    for y in y_hat_probs:
+        if y[1] >= thresh:
+            y_hats.append(1)
+        else:
+            y_hats.append(0)
+    return np.array(y_hats)
+```
+
+
+```python
+y_hat_train = clf.predict_proba(X_train)
+y_hat_test = clf.predict_proba(X_test)
+```
+
+
+```python
+y_hat_train = y_hat_thresh(y_hat_train, thresh=0.80)
+```
 
 Do this for both the train and the test set.
 
 
 ```python
-#Your code here
+print(precison(y_hat_train, y_train))
+print(recall(y_hat_train, y_train))
+print(f1_score(y_hat_train, y_train))
+print(accuracy(y_hat_train, y_train))
+
 ```
+
+    1.0
+    0.5409836065573771
+    0.7021276595744682
+    0.7488789237668162
+
+
+
+```python
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from sklearn.metrics import confusion_matrix
+```
+
+
+```python
+cm = confusion_matrix(y_train, y_hat_train)
+cm
+```
+
+
+
+
+    array([[101,   4],
+           [ 56,  66]])
+
+
+
+
+```python
+sns.heatmap(cm, cmap=sns.color_palette('Blues'), annot=True, fmt='0.16g')
+plt.ylabel("Actual")
+plt.xlabel("Predicted")
+plt.show()
+```
+
+
+![png](index_files/index_25_0.png)
+
 
 ## 7. Comparing Precision Recall and Accuracy of Test vs Train Sets
 
